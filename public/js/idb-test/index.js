@@ -99,9 +99,13 @@ dbPromise.then(db => {
   // return peopleStore.getAll();
   
   // Call getAll on the 'animal' index to sort by favoriteAnimal
-  return animalIndex.getAll();
+  // return animalIndex.getAll();
+  
+  // Add a specific query -- Query 'cat'
+  return animalIndex.getAll('cat');
 }).then(people => {
   
   // The output will be the people sorted by their favoriteAnimal (alphabetized) instead of randomly
+  // Query 'cat' -- This will log to the console only those people whose favoriteAnimal is 'cat'
   console.log('People:', people);
 });
