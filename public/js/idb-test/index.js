@@ -102,6 +102,6 @@ dbPromise.then(db => {
   return animalIndex.getAll();
 }).then(people => {
   
-  // The output will be the people sorted by their favoriteAnimal (alphabetized) instead of their name
+  // The output will be the people sorted by their favoriteAnimal (alphabetized) instead of randomly
   console.log('People:', people);
 });
