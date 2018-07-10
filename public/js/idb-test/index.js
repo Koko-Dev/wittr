@@ -126,6 +126,7 @@ dbPromise.then(db => {
   let ageIndex = peopleStore.index('age');
   
   return ageIndex.getAll();
+  
 }).then(people => {
   console.log('People ordered by age: ', people);
 }).catch(err => {
@@ -147,13 +148,21 @@ dbPromise.then(db => {
   // This returns a Promise for a Cursor Object representing the first item in the index,
   //      or undefined if there isn't one
   return ageIndex.openCursor();
-}).then(function logPerson(cursor) {
+  
+}).then(cursor => {
+  if(!cursor) return;
+  // To skip the first two items use cursor.advance(2)
+  return cursor.advance(2);
+  
+  }).then(function logPerson(cursor) {
   // If it is undefined, just return
   if(!cursor) return;
   
   // Otherwise, log it
   // The first person in the index is in cursor.value
   console.log('Cursored at:', cursor.value.name);
+  // To change the value use cursor.update(newValue)
+  // To delete the entry, use cursor.delete()
   
   // Then call cursor.continue() to move on to the next item
   // cursor.continue() returns a Promise for a cursor representing the next item
@@ -161,6 +170,7 @@ dbPromise.then(db => {
   // Then, Call function logPerson once cursor.continue resolves
   // This sets up an asynchronous loop until cursor is undefined  (end of list)
   return cursor.continue().then(logPerson);
+  
   }).then(() => {
     console.log(('Done cursoring'));
   });
