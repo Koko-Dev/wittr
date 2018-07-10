@@ -1,9 +1,15 @@
 import idb from 'idb';
 
-let dbPromise = idb.open('test-db', 2, function(upgradeDb) {
-  let keyValStore = upgradeDb.createObjectStore('keyval');
-  keyValStore.put("world", "hello");
-  upgradeDb.createObjectStore('people', {keyPath: 'name'});
+let dbPromise = idb.open('test-db', 2, (upgradeDb) => {
+  switch(upgradeDb.oldVersion) {
+    case 0:
+      let keyValStore = upgradeDb.createObjectStore('keyval');
+      keyValStore.put("world", "hello");
+    case 1:
+      upgradeDb.createObjectStore('people', {keyPath: 'name'});
+  }
+  
+  
 });
 
 // read "hello" in "keyval"
