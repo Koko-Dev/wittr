@@ -142,12 +142,12 @@ IndexController.prototype._onSocketMessage = function(data) {
   // console.log('Live Message: ', messages);
   
   // Add messages to the database once the database has been fetched
-  this._dbPromise.then(db => {
+ /* this._dbPromise.then(db => {
     if(!db) return;
     
     // TODO: put each message into the 'wittrs' object store
     
-  });
+  });*/
   
   this._postsView.addPosts(messages);
 };
