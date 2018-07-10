@@ -81,4 +81,14 @@ dbPromise.then(db => {
   return tx.complete;
 }).then(() => {
   console.log('People added');
-})
+});
+
+// To read the people in the people store
+dbPromise.then(db => {
+  let tx = db.transaction('people');
+  let peopleStore = tx.objectStore('people');
+  
+  return peopleStore.getAll();
+}).then(people => {
+  console.log('People:', people);
+});
