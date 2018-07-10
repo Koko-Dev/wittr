@@ -2,24 +2,91 @@ import PostsView from './views/Posts';
 import ToastsView from './views/Toasts';
 import idb from 'idb';
 
+function openDatabase() {
+  // If the browser doesn't support service worker,
+  // we don't care about having a database
+  if(!navigator.serviceWorker) {
+    return Promise.resolve();
+  }
+  
+  // TODO: return a promise for a database called 'wittr'
+  // that contains one objectStore: 'witters'
+  // that uses 'id' as its key
+  // and has an index called 'by-date',
+  // which is sorted by the 'time' property
+  
+  
+  
+}
+
 export default function IndexController(container) {
   this._container = container;
   this._postsView = new PostsView(this._container);
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
   this._openSocket();
+  
+  // Create a Promise for a database by calling openDatabase()
+  this._dbPromise = openDatabase();
+  
   this._registerServiceWorker();
 }
 
 IndexController.prototype._registerServiceWorker = function() {
   if (!navigator.serviceWorker) return;
   
-  navigator.serviceWorker.register('/sw.js').then(function() {
-    console.log('Registration worked!');
-  }).catch(function() {
-    console.log('Registration failed!');
+  var indexController = this;
+  
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    if (!navigator.serviceWorker.controller) {
+      return;
+    }
+    
+    if (reg.waiting) {
+      indexController._updateReady(reg.waiting);
+      return;
+    }
+    
+    if (reg.installing) {
+      indexController._trackInstalling(reg.installing);
+      return;
+    }
+    
+    reg.addEventListener('updatefound', function() {
+      indexController._trackInstalling(reg.installing);
+    });
+  });
+  
+  // Ensure refresh is only called once.
+  // This works around a bug in "force update on reload".
+  var refreshing;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (refreshing) return;
+    window.location.reload();
+    refreshing = true;
   });
 };
+
+IndexController.prototype._trackInstalling = function(worker) {
+  var indexController = this;
+  worker.addEventListener('statechange', function() {
+    if (worker.state == 'installed') {
+      indexController._updateReady(worker);
+    }
+  });
+};
+
+IndexController.prototype._updateReady = function(worker) {
+  var toast = this._toastsView.show("New version available", {
+    buttons: ['refresh', 'dismiss']
+  });
+  
+  toast.answer.then(function(answer) {
+    if (answer != 'refresh') return;
+    worker.postMessage({action: 'skipWaiting'});
+  });
+};
+
 
 // open a connection to the server for live updates
 IndexController.prototype._openSocket = function() {
@@ -67,7 +134,20 @@ IndexController.prototype._openSocket = function() {
 };
 
 // called when the web socket sends message data
+// Here we add messages to the database
 IndexController.prototype._onSocketMessage = function(data) {
   var messages = JSON.parse(data);
+  
+  // See live posts in console
+  // console.log('Live Message: ', messages);
+  
+  // Add messages to the database once the database has been fetched
+  this._dbPromise.then(db => {
+    if(!db) return;
+    
+    // TODO: put each message into the 'wittrs' object store
+    
+  });
+  
   this._postsView.addPosts(messages);
 };
