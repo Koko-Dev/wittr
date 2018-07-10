@@ -1,6 +1,6 @@
 import idb from 'idb';
 
-let dbPromise = idb.open('test-db', 3, (upgradeDb) => {
+let dbPromise = idb.open('test-db', 4, (upgradeDb) => {
   switch(upgradeDb.oldVersion) {
     case 0:
       let keyValStore = upgradeDb.createObjectStore('keyval');
@@ -12,6 +12,13 @@ let dbPromise = idb.open('test-db', 3, (upgradeDb) => {
       // Create an index called 'animal' which sorts by the favoriteAnimal property
       // To use this property, modify the code where I list all of the people
       peopleStore.createIndex('animal', 'favoriteAnimal');
+    case 3:
+      // TODO: create an index on 'people' named 'age', ordered by 'age'
+      peopleStore = upgradeDb.transaction.objectStore('people');
+      
+      // add a new index called 'age' that sorts by the 'age' property
+      peopleStore.createIndex('age', 'age');
+      
   }
 });
 
@@ -108,4 +115,17 @@ dbPromise.then(db => {
   // The output will be the people sorted by their favoriteAnimal (alphabetized) instead of randomly
   // Query 'cat' -- This will log to the console only those people whose favoriteAnimal is 'cat'
   console.log('People:', people);
+});
+
+// TODO: console log all people ordered by age
+dbPromise.then(db => {
+  let tx = db.transaction('people');
+  let peopleStore = tx.objectStore('people');
+  let ageIndex = peopleStore.index('age');
+  
+  return ageIndex.getAll();
+}).then(people => {
+  console.log('People ordered by age: ', people);
+}).catch(err => {
+  console.log('Error sorting People by age:', err);
 });
