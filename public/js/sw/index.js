@@ -1,8 +1,14 @@
-var staticCacheName = 'wittr-static-v8';
+let staticCacheName = 'wittr-static-v8';
+let contentImgsCache = 'wittr-content-imgs';
+let allCaches = [
+  staticCacheName,
+  contentImgsCache
+];
 
-self.addEventListener('install', function(event) {
+
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(staticCacheName).then(function(cache) {
+    caches.open(staticCacheName).then(cache => {
       return cache.addAll([
         '/skeleton',
         'js/main.js',
@@ -15,14 +21,33 @@ self.addEventListener('install', function(event) {
   );
 });
 
-self.addEventListener('activate', function(event) {
+
+//  In this activate event, we're deleting any cache that isn't the static cache
+//  This will not work anymore as we start losing our image cache
+//  Rewritten below, but will keep this for reference
+/*self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.filter(function(cacheName) {
+        cacheNames.filter(cacheName => {
           return cacheName.startsWith('wittr-') &&
             cacheName != staticCacheName;
-        }).map(function(cacheName) {
+        }).map(cacheName =>  {
+          return caches.delete(cacheName);
+        })
+      );
+    })
+  );
+});*/
+
+// Delete any caches that aren't in allCaches Array
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.filter(cacheName => {
+          return cacheName.startsWith('wittr-') && !allCaches.includes(cacheName);
+        }).map(cacheName => {
           return caches.delete(cacheName);
         })
       );
@@ -30,8 +55,9 @@ self.addEventListener('activate', function(event) {
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  var requestUrl = new URL(event.request.url);
+
+self.addEventListener('fetch', event => {
+  let requestUrl = new URL(event.request.url);
   
   if (requestUrl.origin === location.origin) {
     if (requestUrl.pathname === '/') {
@@ -41,13 +67,14 @@ self.addEventListener('fetch', function(event) {
   }
   
   event.respondWith(
-    caches.match(event.request).then(function(response) {
+    caches.match(event.request).then(response => {
       return response || fetch(event.request);
     })
   );
 });
 
-self.addEventListener('message', function(event) {
+
+self.addEventListener('message', event => {
   if (event.data.action === 'skipWaiting') {
     self.skipWaiting();
   }
