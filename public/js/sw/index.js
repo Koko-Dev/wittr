@@ -1,4 +1,4 @@
-let staticCacheName = 'wittr-static-v9';
+let staticCacheName = 'wittr-static-v16';
 let contentImgsCache = 'wittr-content-imgs';
 let allCaches = [
   staticCacheName,
@@ -125,7 +125,6 @@ function servePhoto(request) {
     });
   });
 }
-
 
 
 self.addEventListener('message', event => {

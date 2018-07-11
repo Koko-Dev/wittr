@@ -2,6 +2,7 @@ import PostsView from './views/Posts';
 import ToastsView from './views/Toasts';
 import idb from 'idb';
 
+
 function openDatabase() {
   // If the browser doesn't support service worker,
   // we don't care about having a database
@@ -31,15 +32,30 @@ export default function IndexController(container) {
   this._dbPromise = openDatabase();
   this._registerServiceWorker();
   
+  // When the page loads, it starts the Controller
+  // So, in here, we call a new cleanImageCache method
+  this._cleanImageCache();
   
+  // For instant live posts, moved to _showCachedMessages() Promise
   // this._openSocket();
+  
   let indexController = this;
+  
+  // Used to clean image cache
+  // Since the image cache can still get out of control
+  // if the user keeps the page open for a long time
+  // We will also call the _cleanImageCache() method every 5 minutes
+  setInterval(function() {
+    indexController._cleanImageCache();
+  }, 1000 * 60 * 5);
   
   
   this._showCachedMessages().then(function() {
     indexController._openSocket();
   });
 }
+
+
 
 IndexController.prototype._registerServiceWorker = function() {
   if (!navigator.serviceWorker) return;
@@ -75,6 +91,8 @@ IndexController.prototype._registerServiceWorker = function() {
     refreshing = true;
   });
 };
+
+
 
 IndexController.prototype._showCachedMessages = function () {
   let indexController = this;
@@ -124,6 +142,7 @@ IndexController.prototype._updateReady = function(worker) {
 };
 
 
+
 // open a connection to the server for live updates
 IndexController.prototype._openSocket = function() {
   var indexController = this;
@@ -168,6 +187,73 @@ IndexController.prototype._openSocket = function() {
     }, 5000);
   });
 };
+
+
+
+// Used to clean images in cache
+// Aim: Keeps current images from page in images cache and deletes the rest
+// This brings in indexedDB and the Cache API
+// In Dev Tools, we should only see the images cache only contains
+//   images that are currently on the page
+IndexController.prototype._cleanImageCache = function() {
+  return this._dbPromise.then(db => {
+    if (!db) return;                           
+    
+    // TODO: open the 'wittr' object store, get all the messages,
+    // gather all the photo urls.
+    
+    // Create an empty array to store the images we want to keep
+    let imagesNeeded = [];
+    
+    // Create a transaction to look at the wittrs objectStore
+    let tx = db.transaction('wittrs');
+    
+    // Get the wittrs objectStore and all the messages
+    return tx.objectStore('wittrs').getAll().then(messages => {
+      // Now we can take a peek into the Database
+      messages.forEach(message => {
+        // for each message, check for photo property
+        // message.photo contains the photo URL without the width bit at the end
+        if(message.photo) {
+          //if message has photo, then store in the array
+          // These are the images that we want to keep
+          imagesNeeded.push(message.photo);
+        }
+        // Needed later for caching avatar
+        /*imagesNeeded.push(message.avatar);*/
+      });
+      // Open the 'wittr-content-imgs' cache,
+      // Get all the requests that are stored in it using cache.keys()
+      // and delete any entry
+      // that we no longer need.
+      
+      return caches.open('wittr-content-imgs');
+    }).then(cache => {
+      // Get all of the Requests in the cache using cache.keys()
+      // Requests == cache.keys()
+      return cache.keys().then(requests => {
+        // Go through each key/request of these photos
+        requests.forEach(request => {
+          // Each request has a URL property
+          // Use new URL to get to the pathname property
+          // The URLs on request objects are absolute,
+          //   so they will include the localhost:8888 bit
+          //   whereas the URLs we are storing in indexedDB do not have that
+          // So for each request we are going to pass URL
+          let url = new URL(request.url);
+          // So, now if the pathname of the URL isn't in our array of imagesNeeded
+          //     then pass request to caches.delete()  == caches.delete(request)
+          // pathname property is the same as in cache/indexedDB
+          if(!imagesNeeded.includes(url.pathname)) {
+            // if not in array then delete
+            cache.delete(request);
+          }
+        });
+      });
+    });
+  });
+};
+
 
 
 // called when the web socket sends message data
