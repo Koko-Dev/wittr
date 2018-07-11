@@ -73,6 +73,13 @@ self.addEventListener('fetch', event => {
       event.respondWith(servePhoto(event.request));
       return;
     }
+    // TODO: respond to avatar urls by responding with
+    //       the return value of serveAvatar(event.request)
+    // So, we will react to urls that start with '/avatars/'
+    if(requestUrl.pathname.startsWith('/avatars/')) {
+      event.respondWith(serveAvatar(event.request));
+      return;
+    }
   }
   
   event.respondWith(
@@ -81,6 +88,46 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
+
+function serveAvatar(request) {
+  // Avatar urls look like:
+  // avatars/sam-2x.jpg   (focuses more one density than width)
+  // But storageUrl has the -2x.jpg bit missing.
+  // Use this url to store & match the image in the cache.
+  // This means you only store one copy of each avatar.
+  let storageUrl = request.url.replace(/-\dx\.jpg$/, '');
+  
+  // TODO: return images from the "wittr-content-imgs" cache
+  // if they're in there. But afterwards, go to the network
+  // to update the entry in the cache.
+  //
+  // Note that this is slightly different to servePhoto!
+  
+  // I will start by opening the image cache
+  return caches.open(contentImgsCache).then(cache => {
+    // Then look for a match for the storageUrl
+    return cache.match(storageUrl).then(response => {
+      // Do a Network fetch for the Avatar
+      let networkFetch = fetch(request).then(networkResponse => {
+        // If we get a response, put a clone in the cache using the storageUrl
+        cache.put(storageUrl, networkResponse.clone());
+        // then return the original response
+        return networkResponse;
+    });
+      /*  Now, we have a response from the cache,
+      *     -- but it may be undefined if there is not match for this particular request
+      *   We've also got a Promise for a Network Response
+      *     -- So, we will return the cache response OR the networkResponse => networkFetch
+      *           i.e. return response || networkFetch
+      *
+      *   Note!  Even if we return it from the cache,
+      *           we need to go to the network to update for the next fetch.
+      */
+      return response || networkFetch;
+    });
+  });
+}
 
 
 

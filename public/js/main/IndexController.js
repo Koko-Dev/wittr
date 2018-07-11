@@ -219,8 +219,8 @@ IndexController.prototype._cleanImageCache = function() {
           // These are the images that we want to keep
           imagesNeeded.push(message.photo);
         }
-        // Needed later for caching avatar
-        /*imagesNeeded.push(message.avatar);*/
+        // Add avatars to the Array
+        imagesNeeded.push(message.avatar);
       });
       // Open the 'wittr-content-imgs' cache,
       // Get all the requests that are stored in it using cache.keys()
