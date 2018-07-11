@@ -10,12 +10,12 @@ function openDatabase() {
   }
   
   // TODO: return a promise for a database called 'wittr'
-  // that contains one objectStore: 'witters'
+  // that contains one objectStore: 'wittrs'
   // that uses 'id' as its key
   // and has an index called 'by-date',
   // which is sorted by the 'time' property
   return idb.open('wittr', 1, (upgradeDb) => {
-    let witterStore = upgradeDb.createObjectStore('witters', {keyPath: 'id'});
+    let witterStore = upgradeDb.createObjectStore('wittrs', {keyPath: 'id'});
     witterStore.createIndex('by-date', 'time');
   });
 }
@@ -26,12 +26,19 @@ export default function IndexController(container) {
   this._postsView = new PostsView(this._container);
   this._toastsView = new ToastsView(this._container);
   this._lostConnectionToast = null;
-  this._openSocket();
   
   // Create a Promise for a database by calling openDatabase()
   this._dbPromise = openDatabase();
-  
   this._registerServiceWorker();
+  
+  
+  // this._openSocket();
+  let indexController = this;
+  
+  
+  this._showCachedMessages().then(function() {
+    indexController._openSocket();
+  });
 }
 
 IndexController.prototype._registerServiceWorker = function() {
@@ -68,6 +75,30 @@ IndexController.prototype._registerServiceWorker = function() {
     refreshing = true;
   });
 };
+
+IndexController.prototype._showCachedMessages = function () {
+  let indexController = this;
+  
+  return this._dbPromise.then(function(db) {
+    // if we're already showing posts, eg shift-refresh
+    // or the very first load, there's no point fetching
+    // posts from IDB
+    if(!db || indexController._postsView.showingPosts()) return;
+    
+    // TODO: get all of the wittr message objects from indexedDB
+    // then pass them to:
+    // indexController._postsView.addPosts(messages)
+    // make sure messages are in date descending order
+    // Remember to return a promise that does all this,
+    // so the websocket isn't opened until you're done!
+    // If Database gets into a bad state run in console
+    // indexedDB.deleteDatabase('wittr')
+    let timeIndex = db.transaction('wittrs').objectStore('wittrs').index('by-date');
+    return timeIndex.getAll().then(messages => {
+      indexController._postsView.addPosts(messages.reverse());
+    })
+  })
+}
 
 IndexController.prototype._trackInstalling = function(worker) {
   var indexController = this;
@@ -148,8 +179,10 @@ IndexController.prototype._onSocketMessage = function(data) {
     if(!db) return;
     
     // TODO: put each message into the 'witters' object store
-    let tx = db.transaction('witters', 'readwrite');
-    let witterStore = tx.objectStore('witters');
+    let tx = db.transaction('wittrs', 'readwrite');
+    let witterStore = tx.objectStore('wittrs');
+    let timeIndex = witterStore.index('by-date');
+    
     messages.forEach(message => {
       witterStore.put(message);
     });
