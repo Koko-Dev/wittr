@@ -205,6 +205,7 @@ IndexController.prototype._onSocketMessage = function(data) {
       // if cursor is undefined, we are done
       if(!cursor) return;
       
+      // Delete data entry
       cursor.delete();
       return cursor.continue().then(deleteRest);
     });
