@@ -115,7 +115,7 @@ function servePhoto(request) {
       // The clone is used because you can only read a response's body ONCE
       // Note: The browser receives the response with size information,
       // but we store the image in wittr-content-imgs cache without the size info..
-      // It could be of any size.
+      // It could be of any size. Cache URLs are not size specific.
       // When offline, for the sake of bandwidth, we don't care if the photo is of browser requested size.
       return fetch(request).then(networkResponse => {
         cache.put(storageUrl, networkResponse.clone());
