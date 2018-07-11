@@ -179,16 +179,34 @@ IndexController.prototype._onSocketMessage = function(data) {
   // console.log('Live Message: ', messages);
   
   // Add messages to the database once the database has been fetched
-  this._dbPromise.then(db => {
+  this._dbPromise.then((db) => {
     if(!db) return;
     
     // TODO: put each message into the 'witters' object store
     let tx = db.transaction('wittrs', 'readwrite');
     let witterStore = tx.objectStore('wittrs');
-    let timeIndex = witterStore.index('by-date');
-    
     messages.forEach(message => {
       witterStore.put(message);
+    });
+    
+    // TODO: keep the newest 30 entries in 'wittrs'
+    // but delete the rest.
+    //
+    // Using .openCursor(null, 'prev') to
+    // open a cursor that goes through an index/witterStore
+    // backwards through the index starting with the newest post.
+    witterStore.index('by-date').openCursor(null, 'prev').then(cursor => {
+      
+      // The first 30 newest posts can stay, so we advance past them
+      return cursor.advance(30);
+      
+    }).then(function deleteRest(cursor) {
+      
+      // if cursor is undefined, we are done
+      if(!cursor) return;
+      
+      cursor.delete();
+      return cursor.continue().then(deleteRest);
     });
   });
   
