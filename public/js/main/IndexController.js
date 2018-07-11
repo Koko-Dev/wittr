@@ -95,10 +95,12 @@ IndexController.prototype._showCachedMessages = function () {
     // indexedDB.deleteDatabase('wittr')
     let timeIndex = db.transaction('wittrs').objectStore('wittrs').index('by-date');
     return timeIndex.getAll().then(messages => {
+      // messages are in date ascending order by default
       indexController._postsView.addPosts(messages.reverse());
-    })
-  })
-}
+    });
+  });
+};
+
 
 IndexController.prototype._trackInstalling = function(worker) {
   var indexController = this;
@@ -108,6 +110,7 @@ IndexController.prototype._trackInstalling = function(worker) {
     }
   });
 };
+
 
 IndexController.prototype._updateReady = function(worker) {
   var toast = this._toastsView.show("New version available", {
@@ -165,6 +168,7 @@ IndexController.prototype._openSocket = function() {
     }, 5000);
   });
 };
+
 
 // called when the web socket sends message data
 // Here we add messages to the database
